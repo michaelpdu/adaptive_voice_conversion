@@ -9,6 +9,7 @@ import re
 import numpy as np
 import json
 from tacotron.utils import get_spectrograms
+from multiprocessing import Pool
 
 def read_speaker_info(speaker_info_path):
     speaker_ids = []
@@ -21,7 +22,7 @@ def read_speaker_info(speaker_info_path):
     return speaker_ids
 
 def read_paths(root_dir, dset):
-    paths = sorted(glob.glob(os.path.join(root_dir, f'{dset}/*/*/*.wav')))
+    paths = sorted(glob.glob(os.path.join(root_dir, f'{dset}/*/*/*.flac')))
     return paths
 
 def get_speaker2path(root_dir, dset):
@@ -36,13 +37,58 @@ def spec_feature_extraction(wav_file):
     mel, mag = get_spectrograms(wav_file)
     return mel, mag
 
-if __name__ == '__main__':
-    data_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    dev_proportion = float(sys.argv[3])
-    n_utts_attr = int(sys.argv[4])
-    train_set = sys.argv[5]
-    test_set = sys.argv[6]
+
+def save_mel_spectragram(wav_file, npy_dir):
+    mel, _ = get_spectrograms(wav_file)
+    _, name = os.path.split(wav_file)
+    stem, ext = os.path.splitext(name)
+    np.save(os.path.join(npy_dir, stem+'.npy'), mel)
+
+def preprocess_multiprocess(output_dir, dset, paths):
+    pool = Pool(48)
+    data = {}
+    output_path = os.path.join(output_dir, f'{dset}.pkl')
+    all_train_data = []
+
+    npy_dir = os.path.join(output_dir, 'npy')
+    os.makedirs(npy_dir)
+
+    for i, path in enumerate(paths):
+        pool.apply_async(save_mel_spectragram, (path, npy_dir))
+
+    print('Waiting for all subprocesses done...')
+    pool.close()
+    pool.join()
+    print('All subprocesses done.')
+
+def preprocess_singleprocess(output_dir, dset, paths):
+    data = {}
+    output_path = os.path.join(output_dir, f'{dset}.pkl')
+    all_train_data = []
+    for i, path in enumerate(paths):
+        if i % 500 == 0 or i == len(paths) - 1:
+            print(f'processing {i} files')
+        filename = path.strip().split('/')[-1]
+        mel, mag = spec_feature_extraction(path)
+        data[filename] = mel
+        if dset == 'train' and i < n_utts_attr:
+            all_train_data.append(mel)
+    if dset == 'train':
+        all_train_data = np.concatenate(all_train_data)
+        mean = np.mean(all_train_data, axis=0)
+        std = np.std(all_train_data, axis=0)
+        attr = {'mean': mean, 'std': std}
+        with open(os.path.join(output_dir, 'attr.pkl'), 'wb') as f:
+            pickle.dump(attr, f)
+    for key, val in data.items():
+        val = (val - mean) / std
+        data[key] = val
+    with open(output_path, 'wb') as f:
+        pickle.dump(data, f)
+
+def main(data_dir, output_dir, dev_proportion, n_utts_attr, train_set, test_set):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     paths = read_paths(data_dir, train_set)
     random.shuffle(paths)
@@ -70,26 +116,22 @@ if __name__ == '__main__':
     for dset, paths in zip(['train', 'dev', 'test'], \
             [train_paths, dev_paths, test_paths]):
         print(f'processing {dset} set, {len(paths)} files')
-        data = {}
-        output_path = os.path.join(output_dir, f'{dset}.pkl')
-        all_train_data = []
-        for i, path in enumerate(paths):
-            if i % 500 == 0 or i == len(paths) - 1:
-                print(f'processing {i} files')
-            filename = path.strip().split('/')[-1]
-            mel, mag = spec_feature_extraction(path)
-            data[filename] = mel
-            if dset == 'train' and i < n_utts_attr:
-                all_train_data.append(mel)
-        if dset == 'train':
-            all_train_data = np.concatenate(all_train_data)
-            mean = np.mean(all_train_data, axis=0)
-            std = np.std(all_train_data, axis=0)
-            attr = {'mean': mean, 'std': std}
-            with open(os.path.join(output_dir, 'attr.pkl'), 'wb') as f:
-                pickle.dump(attr, f)
-        for key, val in data.items():
-            val = (val - mean) / std
-            data[key] = val
-        with open(output_path, 'wb') as f:
-            pickle.dump(data, f)
+        preprocess_singleprocess(output_dir, dset, paths)
+        # preprocess_multiprocess(output_dir, dset, paths)
+
+if __name__ == '__main__':
+    data_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    dev_proportion = float(sys.argv[3])
+    n_utts_attr = int(sys.argv[4])
+    train_set = sys.argv[5]
+    test_set = sys.argv[6]
+
+    # data_dir = "/data3/voice_dataset/en/LibriSpeech"
+    # output_dir = "./data/LibriSpeech"
+    # dev_proportion = 0.05
+    # n_utts_attr = 5000
+    # train_set = "train-clean-100"
+    # test_set = "dev-clean"
+
+    main(data_dir, output_dir, dev_proportion, n_utts_attr, train_set, test_set)

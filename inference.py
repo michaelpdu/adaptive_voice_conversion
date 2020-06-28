@@ -94,13 +94,13 @@ class Inferencer(object):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-attr', '-a', help='attr file path')
-    parser.add_argument('-config', '-c', help='config file path')
-    parser.add_argument('-model', '-m', help='model path')
-    parser.add_argument('-source', '-s', help='source wav path')
-    parser.add_argument('-target', '-t', help='target wav path')
-    parser.add_argument('-output', '-o', help='output wav path')
-    parser.add_argument('-sample_rate', '-sr', help='sample rate', default=24000, type=int)
+    parser.add_argument('--attr', '-a', help='attr file path')
+    parser.add_argument('--config', '-c', help='config file path')
+    parser.add_argument('--model', '-m', help='model path')
+    parser.add_argument('--source', '-s', help='source wav path')
+    parser.add_argument('--target', '-t', help='target wav path')
+    parser.add_argument('--output', '-o', help='output wav path')
+    parser.add_argument('--sample_rate', '-sr', help='sample rate', default=24000, type=int)
     args = parser.parse_args()
     # load config file 
     with open(args.config) as f:

@@ -1,7 +1,7 @@
 import torch 
 import numpy as np
 from tensorboardX import SummaryWriter
-import editdistance
+# import editdistance
 import torch.nn as nn
 import torch.nn.init as init
 
@@ -23,7 +23,7 @@ class Logger(object):
         self.writer.add_text(tag, value, step)
 
     def audio_summary(self, tag, value, step, sr):
-        writer.add_audio(tag, value, step, sample_rate=sr)
+        self.writer.add_audio(tag, value, step, sample_rate=sr)
 
 def infinite_iter(iterable):
     it = iter(iterable)

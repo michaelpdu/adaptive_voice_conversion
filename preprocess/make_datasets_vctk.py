@@ -22,7 +22,7 @@ def read_speaker_info(speaker_info_path):
 
 def read_filenames(root_dir):
     speaker2filenames = defaultdict(lambda : [])
-    for path in sorted(glob.glob(os.path.join(root_dir, '*/*'))):
+    for path in sorted(glob.glob(os.path.join(root_dir, '*/*.wav'))):
         filename = path.strip().split('/')[-1]
         speaker_id, utt_id = re.match(r'p(\d+)_(\d+)\.wav', filename).groups()
         speaker2filenames[speaker_id].append(path)
@@ -45,6 +45,17 @@ if __name__ == '__main__':
     test_proportion = float(sys.argv[5])
     sample_rate = int(sys.argv[6])
     n_utts_attr = int(sys.argv[7])
+
+    # data_dir = "/data3/voice_dataset/en/VCTK-Corpus/wav48"
+    # speaker_info_path = "/data3/voice_dataset/en/VCTK-Corpus/speaker-info.txt"
+    # output_dir = "./data/VCTK"
+    # test_speakers = 20
+    # test_proportion = 0.1
+    # sample_rate = 24000
+    # n_utts_attr = 5000
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     speaker_ids = read_speaker_info(speaker_info_path)
     random.shuffle(speaker_ids)

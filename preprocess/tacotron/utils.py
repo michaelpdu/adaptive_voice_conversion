@@ -8,7 +8,7 @@ from __future__ import print_function, division
 
 from .hyperparams import Hyperparams as hp
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 import librosa
 import copy
 #import matplotlib
@@ -147,31 +147,29 @@ def griffin_lim(spectrogram):
 
     return y
 
-
 def invert_spectrogram(spectrogram):
     '''
     spectrogram: [f, t]
     '''
     return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
 
+# def plot_alignment(alignment, gs):
+#     """Plots the alignment
+#     alignments: A list of (numpy) matrix of shape (encoder_steps, decoder_steps)
+#     gs : (int) global step
+#     """
+#     fig, ax = plt.subplots()
+#     im = ax.imshow(alignment)
 
-def plot_alignment(alignment, gs):
-    """Plots the alignment
-    alignments: A list of (numpy) matrix of shape (encoder_steps, decoder_steps)
-    gs : (int) global step
-    """
-    fig, ax = plt.subplots()
-    im = ax.imshow(alignment)
+#     # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#     fig.colorbar(im)
+#     plt.title('{} Steps'.format(gs))
+#     plt.savefig('{}/alignment_{}k.png'.format(hp.logdir, gs//1000), format='png')
 
-    # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(im)
-    plt.title('{} Steps'.format(gs))
-    plt.savefig('{}/alignment_{}k.png'.format(hp.logdir, gs//1000), format='png')
-
-def learning_rate_decay(init_lr, global_step, warmup_steps=4000.):
-    '''Noam scheme from tensor2tensor'''
-    step = tf.cast(global_step + 1, dtype=tf.float32)
-    return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
+# def learning_rate_decay(init_lr, global_step, warmup_steps=4000.):
+#     '''Noam scheme from tensor2tensor'''
+#     step = tf.cast(global_step + 1, dtype=tf.float32)
+#     return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
 
 def load_spectrograms(fpath):
     fname = os.path.basename(fpath)
